@@ -241,7 +241,8 @@ async function handleRequest(req, res) {
   }
 
   const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
+  const rawPath = req.headers['x-matched-path'] || req.headers['x-forwarded-url'] || parsedUrl.query.__url || parsedUrl.pathname;
+  const pathname = (rawPath || '/').split('?')[0];
 
   if (pathname === '/' || pathname === '/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
