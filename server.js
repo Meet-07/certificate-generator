@@ -868,3 +868,14 @@ if (!isVercel) {
 
 module.exports = handleRequest;
 module.exports.server = server;
+module.exports.getConfig = getConfig;
+module.exports.saveConfig = saveConfig;
+module.exports.getTransactions = getTransactions;
+module.exports.saveTransactions = saveTransactions;
+module.exports.parseBody = parseBody;
+module.exports.sendJSON = sendJSON;
+module.exports.isAuthenticated = isAuthenticated;
+module.exports.sessions = sessions;
+module.exports.ADMIN_PASSWORD = ADMIN_PASSWORD;
+module.exports.sendPasswordEmail = sendPasswordEmail;
+module.exports.getAdminSpaHtml = getAdminSpaHtml;
