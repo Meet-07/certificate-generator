@@ -7,30 +7,53 @@ const querystring = require('querystring');
 
 const PORT = process.env.PORT || 8080;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'RavalMegh9898@';
-const DB_FILE = path.join(__dirname, 'transactions.json');
+const isVercel = Boolean(process.env.VERCEL);
+const DATA_DIR = isVercel ? '/tmp' : __dirname;
+const DB_FILE = path.join(DATA_DIR, 'transactions.json');
+const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 
 // In-memory active session tokens
 const sessions = new Set();
 
-// Initialize database file
-if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2));
+// Initialize database file & config file (with Vercel seed support)
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+
+  const seedDb = path.join(__dirname, 'transactions.json');
+  if (isVercel && fs.existsSync(seedDb) && !fs.existsSync(DB_FILE)) {
+    fs.copyFileSync(seedDb, DB_FILE);
+  } else if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2));
+  }
+
+  const seedConfig = path.join(__dirname, 'config.json');
+  if (isVercel && fs.existsSync(seedConfig) && !fs.existsSync(CONFIG_FILE)) {
+    fs.copyFileSync(seedConfig, CONFIG_FILE);
+  }
+} catch(e) {
+  console.error('Initialization note:', e.message);
 }
 
 function getTransactions() {
   try {
-    const data = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (e) {
-    return [];
-  }
+    if (fs.existsSync(DB_FILE)) {
+      const data = fs.readFileSync(DB_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (e) {}
+  return [];
 }
 
 function saveTransactions(list) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(list, null, 2));
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(list, null, 2));
+  } catch (e) {
+    console.error('Save transactions error:', e.message);
+  }
 }
 
-const CONFIG_FILE = path.join(__dirname, 'config.json');
 const DEFAULT_CONFIG = {
   amount: 40,
   upiId: 'maraval0316@oksbi',
@@ -48,7 +71,11 @@ function getConfig() {
 }
 
 function saveConfig(cfg) {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
+  try {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
+  } catch (e) {
+    console.error('Save config error:', e.message);
+  }
 }
 
 function parseBody(req) {
@@ -806,7 +833,11 @@ function escapeHtml(str) {
 </html>`;
 }
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-  console.log(`Admin approval panel at http://localhost:${PORT}/admin`);
-});
+if (!isVercel) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Admin approval panel at http://localhost:${PORT}/admin`);
+  });
+}
+
+module.exports = server;
