@@ -241,7 +241,10 @@ async function handleRequest(req, res) {
   }
 
   const parsedUrl = url.parse(req.url, true);
-  const rawPath = req.headers['x-matched-path'] || req.headers['x-forwarded-url'] || parsedUrl.query.__url || parsedUrl.pathname;
+  let rawPath = parsedUrl.query.__url || req.headers['x-forwarded-url'] || parsedUrl.pathname;
+  if (rawPath === '/api/index.js' || rawPath === '/api/index' || rawPath === '/api') {
+    rawPath = parsedUrl.query.__url || '/';
+  }
   const pathname = (rawPath || '/').split('?')[0];
 
   if (pathname === '/' || pathname === '/index.html') {
