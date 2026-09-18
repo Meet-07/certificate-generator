@@ -1,4 +1,4 @@
-const { getAdminSpaHtml } = require('../server');
+const { getAdminSpaHtml } = require('../../server');
 
 module.exports = (req, res) => {
   res.writeHead(200, {
