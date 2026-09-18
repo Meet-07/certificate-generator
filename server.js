@@ -212,6 +212,14 @@ async function sendPasswordEmail(toEmail, recipientName, password, utr) {
   return sent;
 }
 
+let INDEX_HTML = '';
+try {
+  const p1 = path.join(__dirname, 'index.html');
+  const p2 = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(p1)) INDEX_HTML = fs.readFileSync(p1, 'utf8');
+  else if (fs.existsSync(p2)) INDEX_HTML = fs.readFileSync(p2, 'utf8');
+} catch(e) {}
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -222,7 +230,7 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml'
 };
 
-const server = http.createServer(async (req, res) => {
+async function handleRequest(req, res) {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -234,6 +242,11 @@ const server = http.createServer(async (req, res) => {
 
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
+
+  if (pathname === '/' || pathname === '/index.html') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(INDEX_HTML);
+  }
 
   // Config endpoint (public)
   if (pathname === '/api/config' && req.method === 'GET') {
@@ -397,6 +410,13 @@ const server = http.createServer(async (req, res) => {
   // ===== SERVE STATIC FRONTEND =====
   let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
   if (!fs.existsSync(filePath)) {
+    filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
+  }
+  if (!fs.existsSync(filePath)) {
+    if (INDEX_HTML) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(INDEX_HTML);
+    }
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     return res.end('Not Found');
   }
@@ -405,7 +425,7 @@ const server = http.createServer(async (req, res) => {
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
   res.writeHead(200, { 'Content-Type': contentType });
   fs.createReadStream(filePath).pipe(res);
-});
+}
 
 // Admin SPA HTML (AJAX Form Login & AJAX Live Dashboard)
 function getAdminSpaHtml() {
@@ -833,6 +853,8 @@ function escapeHtml(str) {
 </html>`;
 }
 
+const server = http.createServer(handleRequest);
+
 if (!isVercel) {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${PORT}`);
@@ -840,4 +862,5 @@ if (!isVercel) {
   });
 }
 
-module.exports = server;
+module.exports = handleRequest;
+module.exports.server = server;
