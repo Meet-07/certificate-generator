@@ -1,0 +1,4 @@
+﻿node_modules/
+cloudflared.exe
+tunnel.log
+*.vbs
